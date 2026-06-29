@@ -1,5 +1,12 @@
 # Project Scoring Model
 
+You can access my models at:
+
+[Project Score Model](https://mantavyamaan.github.io/Project_Score/project-score-console.html)
+
+[Simplified Project Score Model(https://mantavyamaan.github.io/Project_Score/simplified-project-score-console.html)
+
+
 ## Overview
 
 The Project Scoring Model is a comprehensive decision-support framework designed to objectively evaluate and prioritize projects based on multiple business, operational, financial, and strategic dimensions.
