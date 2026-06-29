@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project Score Model · Console</title>
+<style>
+  :root{
+    --bg:#0a0e14; --panel:#121823; --panel2:#1a2230; --line:#26303f;
+    --txt:#e6edf3; --muted:#8b97a7; --accent:#4dd4ac; --accent2:#5b9dff;
+    --warn:#ffb454; --bad:#ff6b6b; --good:#4dd4ac;
+    --shadow:0 8px 30px rgba(0,0,0,.45);
+    --r:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    background:radial-gradient(1200px 600px at 70% -10%,#16203040,transparent),var(--bg);
+    color:var(--txt);line-height:1.5;padding:22px;font-size:14px;
+  }
+  .wrap{max-width:1320px;margin:0 auto}
+  .topbar{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:14px;margin-bottom:18px}
+  .eyebrow{font-size:11px;letter-spacing:.22em;color:var(--accent);text-transform:uppercase;font-weight:700}
+  h1{font-size:30px;font-weight:800;letter-spacing:-.5px;margin-top:2px}
+  .sub{color:var(--muted);font-size:13px;margin-top:4px;max-width:640px}
+  .btns{display:flex;gap:8px;flex-wrap:wrap}
+  button{
+    background:var(--panel2);color:var(--txt);border:1px solid var(--line);
+    padding:8px 14px;border-radius:9px;cursor:pointer;font-size:12.5px;font-weight:600;
+    transition:.15s;
+  }
+  button:hover{border-color:var(--accent);color:var(--accent)}
+  button.primary{background:linear-gradient(135deg,#1f8a6d,#2db38d);border-color:transparent;color:#fff}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+  .sect-title{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-weight:700;padding:14px 18px;border-bottom:1px solid var(--line)}
+
+  /* Top dashboard grid */
+  .dash{display:grid;grid-template-columns:1.15fr 1.4fr;gap:18px;margin-bottom:18px}
+  @media(max-width:900px){.dash{grid-template-columns:1fr}}
+
+  .gauge-wrap{padding:22px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .score-num{font-size:62px;font-weight:800;letter-spacing:-2px;line-height:1}
+  .score-label{font-size:13px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;margin-top:6px}
+  .scale-row{display:flex;justify-content:space-between;width:100%;max-width:340px;margin-top:14px;font-size:10px;color:var(--muted);letter-spacing:.05em}
+  .gate-strip{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px;justify-content:center}
+  .gate-pill{font-size:10.5px;padding:5px 9px;border-radius:20px;font-weight:700;letter-spacing:.04em;border:1px solid}
+  .gp-pass{background:#13352b;border-color:#1f6b54;color:var(--good)}
+  .gp-fail{background:#3a1717;border-color:#7a2b2b;color:var(--bad)}
+
+  /* composition */
+  .comp{padding:18px}
+  .comp h3{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:14px}
+  .bar-row{display:flex;align-items:center;gap:10px;margin-bottom:9px;font-size:12px}
+  .bar-row .lab{width:160px;flex-shrink:0;color:var(--muted)}
+  .bar-track{flex:1;height:14px;background:var(--panel2);border-radius:7px;overflow:hidden}
+  .bar-fill{height:100%;border-radius:7px;transition:width .4s ease}
+  .bar-val{width:54px;text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+
+  .gates-mods{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+  @media(max-width:900px){.gates-mods{grid-template-columns:1fr}}
+  .toggle-grid{padding:14px 18px;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+  .toggle{display:flex;flex-direction:column;gap:4px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;transition:.15s}
+  .toggle:hover{border-color:var(--accent)}
+  .toggle .tname{font-size:12px;font-weight:700}
+  .toggle .tdesc{font-size:10px;color:var(--muted);line-height:1.3}
+  .toggle .tstate{font-size:10px;font-weight:800;letter-spacing:.08em;margin-top:2px}
+  .toggle.on .tstate{color:var(--good)}
+  .toggle.off{border-color:#7a2b2b}
+  .toggle.off .tstate{color:var(--bad)}
+
+  .mods{padding:14px 18px}
+  .mod-row{display:grid;grid-template-columns:160px 1fr 46px;gap:10px;align-items:center;margin-bottom:12px}
+  .mod-row label{font-size:12px;color:var(--muted)}
+  .mod-row .mval{font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+
+  /* parameter accordion */
+  .params{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:1000px){.params{grid-template-columns:1fr}}
+  .pcard{overflow:hidden}
+  .phead{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;user-select:none}
+  .phead:hover{background:var(--panel2)}
+  .pid{display:flex;align-items:center;gap:10px}
+  .pbadge{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font-weight:800;font-size:13px;background:linear-gradient(135deg,#23344a,#2d4763);color:var(--accent)}
+  .pname{font-size:13.5px;font-weight:700}
+  .pweight{font-size:10px;color:var(--muted)}
+  .pscore{display:flex;align-items:center;gap:10px}
+  .pscore .pv{font-size:18px;font-weight:800;font-variant-numeric:tabular-nums}
+  .mini-track{width:60px;height:6px;background:var(--panel2);border-radius:4px;overflow:hidden}
+  .mini-fill{height:100%;border-radius:4px}
+  .chev{color:var(--muted);transition:.2s;font-size:12px}
+  .pcard.open .chev{transform:rotate(90deg)}
+  .pbody{display:none;padding:4px 16px 16px;border-top:1px solid var(--line)}
+  .pcard.open .pbody{display:block}
+  .field{display:grid;grid-template-columns:1fr 90px;gap:10px;align-items:center;margin:9px 0}
+  .field .fl{font-size:11.5px;color:var(--muted)}
+  .field .fl b{color:var(--txt);font-weight:600}
+  .field input[type=range]{width:100%}
+  .field input[type=number]{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:7px;padding:6px 8px;font-size:12px;width:100%;text-align:right}
+  .field .num-out{font-size:12px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums;min-width:44px}
+
+  input[type=range]{-webkit-appearance:none;height:5px;background:var(--panel2);border-radius:4px;outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:var(--accent);cursor:pointer;border:2px solid #0a0e14}
+  input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;background:var(--accent);cursor:pointer;border:2px solid #0a0e14}
+
+  .radar-card{padding:18px}
+  .footnote{color:var(--muted);font-size:11.5px;margin-top:18px;text-align:center;line-height:1.6}
+  .footnote code{background:var(--panel2);padding:2px 6px;border-radius:5px;color:var(--accent)}
+  .section-gap{margin-top:18px}
+  .grid-2{display:grid;grid-template-columns:2fr 1fr;gap:18px}
+  @media(max-width:900px){.grid-2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div>
+      <div class="eyebrow">Theoretical Scoring Instrument</div>
+      <h1>Project Score Model</h1>
+      <div class="sub">Adjust any input and the score recalculates instantly — same formulas as the model notebook, across all 14 parameters, 11 knockout gates and 7 situational modifiers.</div>
+    </div>
+    <div class="btns">
+      <button onclick="randomize()">Randomize</button>
+      <button onclick="resetSample()">Reset to sample</button>
+      <button class="primary" onclick="copySummary()">Copy summary</button>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="dash">
+    <div class="panel gauge-wrap">
+      <canvas id="gauge" width="360" height="210"></canvas>
+      <div class="score-num" id="scoreNum">0</div>
+      <div class="score-label" id="scoreLabel">—</div>
+      <div class="scale-row"><span>0</span><span>WEAK</span><span>VIABLE</span><span>STRONG</span><span>100</span></div>
+      <div class="gate-strip" id="gateStrip"></div>
+    </div>
+
+    <div class="panel">
+      <div class="sect-title">Score Composition — who's pulling the needle</div>
+      <div class="comp" id="comp"></div>
+    </div>
+  </div>
+
+  <!-- GATES & MODIFIERS -->
+  <div class="gates-mods">
+    <div class="panel">
+      <div class="sect-title">Hard Knockout Gates — any fail zeroes the score</div>
+      <div class="toggle-grid" id="gatesGrid"></div>
+    </div>
+    <div class="panel">
+      <div class="sect-title">Situational Modifiers — continuous multipliers</div>
+      <div class="mods" id="modsBox"></div>
+    </div>
+  </div>
+
+  <!-- RADAR -->
+  <div class="grid-2 section-gap">
+    <div class="panel radar-card">
+      <div class="sect-title" style="margin:-18px -18px 16px;">Shape of the Project — parameter profile</div>
+      <canvas id="radar" width="620" height="380" style="width:100%;height:auto"></canvas>
+    </div>
+    <div class="panel" style="padding:18px">
+      <div class="sect-title" style="margin:-18px -18px 16px;">Headline numbers</div>
+      <div id="headline" style="font-size:13px"></div>
+    </div>
+  </div>
+
+  <!-- PARAMETERS -->
+  <div class="sect-title panel section-gap" style="border-radius:14px 14px 0 0">14 Parameters — expand to tune variables</div>
+  <div class="params" id="params" style="padding:16px;background:var(--panel);border:1px solid var(--line);border-top:none;border-radius:0 0 14px 14px"></div>
+
+  <div class="footnote">
+    Final score: <code>S = 100 · G · M · Σ wᵢ·Xᵢ</code> &nbsp;·&nbsp; G = product of 11 binary gates &nbsp;·&nbsp; M = product of 7 modifiers.<br>
+    Runs entirely in this page — nothing leaves your browser.
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   SAMPLE DATA (from the notebook)
+   ============================================================ */
+const SAMPLE = {
+  p1:{rd:.85,sa:.75,sc:2,uc:.8,ac:.9,am:.15,dp:.8,cr:.75,vt:2,coh:.75,rev:1.0,fc:.8,ref:.5,vd:.7},
+  p2:{v:2500000,c:1600000,tb:1800000,bs:400000,pp:.25,ps:.8,bc:.75,crr:.9,co:1,cm:1.0,rv:.9,cp:.75,mg:.35,rr:.6,dk:1.0},
+  p3:{ta:.9,se:.75,dm:.85,sk:.8,kc:.3,bs:.6,tl:.8,ct:.8,rl:5,rr:6,ot:.2,on:2,sr:.8,od:.15,ld:1.0,bn:.25,pp:4},
+  p4:{tr:90,te_est:100,td:120,te:30,mc:4,mt:12,md:1,ad:3.0,bf:15,cd:0,vl:.9,bl:.85,de:3,ph:1.0,pn:.5,tz:5.5},
+  p5:{ch:.5,cr:.75,rt:6.0,fd:.8,dma:1.0,py:1.0,coc:.85,sp:.9,ec:3,dc:10,pp:.7,ng:1,mf:2,ma:.9,es:.8,e_client:250,e_ideal:200},
+  p6:{ir:.85,er:.8,rc:2,rp:6,fr:.7,dr:8,ds:7,ct:.9,td:2.5,ag:.8,wt:.5},
+  p7:{exp:.8,nc:.35,is_n:4,ai:.3,dsm:.75,pc:.4,re:.6,tdr:.2,cf:.8,pt:.75,stf:4,tn:.3,qs:.5},
+  p8:{ri:8,rm:7,rr:2,de:5,db:1,ci:.8,tp:.85,sc:.9,ctr:.75,ea:0,scr:.25,tcr:.3,fnr:.15,lgr:.1,rpr:.2,tnr:.2},
+  p9:{cs:.85,nps:8.0,ts:.8,ef:.75,ce:0,pr:.8,ref:.7,tc:.75,ip:.85,cl:.8},
+  p10:{sv:.7,bp:.8,csp:1.0,in_n:.6,lp:.65,mkt:.7,pa:.75,vta:.85,n_new:3},
+  p11:{rp:.75,ut:.8,esv:.6,rf:.7,phn:2,rt:.65,cr:3,exp:.7,ltv:7500000,fv:2500000},
+  p12:{nc:3,wh:.65,usp:.75,pours:2500000,pmkt:2400000,rla:.7,s:0,rpq:.8},
+  p13:{mt:6,rt:4,sth:3,doc:5,fb:.85,pro:.75,ng:1},
+  p14:{qs:.85,ac:.9,wm:1.0,pq:.8},
+  gates:[1,1,1,1,1,1,1,1,1,1,1],
+  mods:[1,1,1,1,1,1,1]
+};
+
+const WEIGHTS = [0.11,0.10,0.10,0.10,0.09,0.09,0.08,0.07,0.06,0.05,0.05,0.04,0.03,0.03];
+
+/* Field definitions: type 'r' = ratio 0..1 slider, 'i' = integer, 'f' = float, 'n' = raw number */
+const PARAM_DEFS = [
+ {key:'p1',name:'Scope Definition & Requirements Clarity',fields:[
+   ['rd','Requirements doc completeness','r'],['sa','Scope agreement formality','r'],
+   ['sc','Scope changes after kickoff','i'],['uc','Use-case specificity','r'],
+   ['ac','Acceptance criteria defined','r'],['am','Ambiguity index (lower better)','r'],
+   ['dp','Deliverables explicitly listed','r'],['cr','Client responsiveness to clarify','r'],
+   ['vt','Verticals touched (1-6)','i'],['coh','Cross-vertical coherence','r'],
+   ['rev','Revision policy clarity','r'],['fc','Feature-creep resistance','r'],
+   ['ref','Reference material provided','r'],['vd','Vertical requirement depth','r']]},
+ {key:'p2',name:'Revenue, Budget & Financial Health',fields:[
+   ['v','Project value (revenue)','n'],['c','Cost to deliver','n'],
+   ['tb','Approved budget','n'],['bs','Budget spent to date','n'],
+   ['pp','% physically complete','r'],['ps','Payment structure security','r'],
+   ['bc','Budget confirmation level','r'],['crr','Cost recovery rate','r'],
+   ['co','Cost overruns flagged','i'],['cm','Client payment compliance','r'],
+   ['rv','Revenue visibility','r'],['cp','Change-order premium captured','r'],
+   ['mg','Current gross margin','r'],['rr','Revenue recurrence prob','r'],['dk','Jurisdiction risk','r']]},
+ {key:'p3',name:'Resource Allocation, Team & Availability',fields:[
+   ['ta','Team availability ratio','r'],['se','Avg seniority-experience','r'],
+   ['dm','Domain match','r'],['sk','Skill coverage','r'],['kc','Key-person risk (lower better)','r'],
+   ['bs','Bench strength','r'],['tl','Tool/license readiness','r'],['ct','Cross-training','r'],
+   ['rl','Roles filled','i'],['rr','Roles required','i'],['ot','Overtime ratio (lower better)','r'],
+   ['on','Competing projects','i'],['sr','Seniority match','r'],['od','Outsource dependency','r'],
+   ['ld','PM/Lead availability','r'],['bn','Burnout risk (lower better)','r'],['pp','Similar past projects','i']]},
+ {key:'p4',name:'Timeline, Milestone Health & Delivery',fields:[
+   ['tr','Requested timeline (days)','i'],['te_est','Realistic estimate (days)','i'],
+   ['td','Approved duration (days)','i'],['te','Days elapsed','i'],
+   ['mc','Milestones on-time','i'],['mt','Total milestones','i'],['md','Milestones delayed','i'],
+   ['ad','Avg delay per milestone','f'],['bf','Buffer days remaining','i'],
+   ['cd','Critical-path delays','i'],['vl','Velocity','r'],['bl','Backlog health','r'],
+   ['de','External dependencies','i'],['ph','Phased delivery possible','r'],
+   ['pn','Penalty/SLA risk','r'],['tz','Timezone diff (hrs)','f']]},
+ {key:'p5',name:'Client Profile, Reliability & Communication',fields:[
+   ['ch','Client history','r'],['cr','Client reputation','r'],['rt','Avg response time (hrs)','f'],
+   ['fd','Feedback depth','r'],['dma','Decision-maker access','r'],['py','Payment history','r'],
+   ['coc','Communication clarity','r'],['sp','Single point of contact','r'],
+   ['ec','Comm channels used','i'],['dc','Documented comms','i'],['pp','Proactive participation','r'],
+   ['ng','Negative signals','i'],['mf','Meetings/week','i'],['ma','Meeting attendance','r'],
+   ['es','Escalation speed','r'],['e_client','Client employee count','n'],['e_ideal','Ideal client size','n']]},
+ {key:'p6',name:'Quality Assurance & Review Cycle',fields:[
+   ['ir','Internal reviewer score','r'],['er','External reviewer score','r'],
+   ['rc','Review cycles done','i'],['rp','Review cycles planned','i'],
+   ['fr','First-pass acceptance','r'],['dr','Defects requested','i'],['ds','Defects resolved','i'],
+   ['ct','Standards compliance','r'],['td','Review turnaround (days)','f'],
+   ['ag','Reviewer agreement','r'],['wt','Internal reviewer weight','r']]},
+ {key:'p7',name:'Technical Feasibility & Creative Complexity',fields:[
+   ['exp','Expertise match','r'],['nc','Novelty coefficient','r'],['is_n','Integrations required','i'],
+   ['ai','AI/ML complexity','r'],['dsm','Design system maturity','r'],['pc','Platform count (norm)','r'],
+   ['re','Asset reusability','r'],['tdr','Tech debt risk (lower better)','r'],
+   ['cf','Creative freedom','r'],['pt','Prototype/POC approved','r'],
+   ['stf','Stack familiarity (1-5)','i'],['tn','Tech novelty risk','r'],['qs','Quality standard req','r']]},
+ {key:'p8',name:'Risk, Dependency & Escalation',fields:[
+   ['ri','Identified risks','i'],['rm','Risks with mitigation','i'],['rr','Risks materialised','i'],
+   ['de','External dependencies','i'],['db','Dependencies blocked','i'],['ci','Client input health','r'],
+   ['tp','Third-party reliability','r'],['sc','Security/compliance posture','r'],['ctr','Contractual safety','r'],
+   ['ea','Active escalations','i'],['scr','Scope risk','r'],['tcr','Technical risk','r'],
+   ['fnr','Financial risk','r'],['lgr','Legal risk','r'],['rpr','Reputational risk','r'],['tnr','Team risk','r']]},
+ {key:'p9',name:'Stakeholder Satisfaction & Sentiment',fields:[
+   ['cs','Client satisfaction (CSAT)','r'],['nps','NPS (0-10)','f'],['ts','Team satisfaction','r'],
+   ['ef','Expectation fulfilment','r'],['ce','Client complaints','i'],['pr','Praise ratio','r'],
+   ['ref','Referenceability','r'],['tc','Trust & candour','r'],['ip','Internal perception','r'],['cl','Cultural alignment','r']]},
+ {key:'p10',name:'Strategic Alignment & Portfolio Value',fields:[
+   ['sv','Strategic value','r'],['bp','Brand portfolio value','r'],['csp','Case study potential','r'],
+   ['in_n','Innovation value','r'],['lp','Learning/IP potential','r'],['mkt','Market positioning','r'],
+   ['pa','Portfolio balance','r'],['vta','Vertical alignment','r'],['n_new','New skills count','i']]},
+ {key:'p11',name:'Scalability, Growth & Lifetime Value',fields:[
+   ['rp','Repeat business prob','r'],['ut','Upsell potential','r'],['esv','Ecosystem value','r'],
+   ['rf','Referral potential','r'],['phn','Anticipated phases','i'],['rt','Retainer conversion prob','r'],
+   ['cr','Cross-sell count','i'],['exp','Account expansion prob','r'],['ltv','3-yr lifetime value','n'],['fv','First project value','n']]},
+ {key:'p12',name:'Competitive Position & Win Probability',fields:[
+   ['nc','Competitors bidding','i'],['wh','Historical win rate','r'],['usp','USP strength','r'],
+   ['pours','Our quoted price','n'],['pmkt','Market rate','n'],['rla','Relationship advantage','r'],
+   ['s','Sole vendor (0/1)','i'],['rpq','Proposal quality','r']]},
+ {key:'p13',name:'Engagement Quality & Responsiveness',fields:[
+   ['mt','Substantive meetings','i'],['rt','Avg response time (hrs)','f'],['sth','Active stakeholders','i'],
+   ['doc','Documents shared','i'],['fb','Feedback quality','r'],['pro','Proactiveness','r'],['ng','Negative signals','i']]},
+ {key:'p14',name:'Project Source & Referral Quality',fields:[
+   ['qs','Source channel quality','r'],['ac','Attribution confidence','r'],['wm','Source warmth','r'],['pq','Brief quality at first contact','r']]}
+];
+
+const GATE_DEFS = [
+  ['G1','Contract authorisation','Signed SOW / engagement authority exists'],
+  ['G2','Legal & ethical clearance','No NDA/IP/regulatory/ethical violation'],
+  ['G3','Pipeline integrity','No duplicate project in pipeline'],
+  ['G4','Client entity verified','Not sanctioned/shell/front'],
+  ['G5','Data & IP ownership','Ownership defined & acceptable'],
+  ['G6','Minimum viable team','At least one qualified resource assigned'],
+  ['G7','Client authorisation','Contact has authority to commit'],
+  ['G8','Platform access','All access/credentials obtainable'],
+  ['G9','Jurisdictional legality','Legal to operate & deliver'],
+  ['G10','Conflict of interest','No exclusivity breach'],
+  ['G11','Technical feasibility','Fundamentally achievable']
+];
+
+const MOD_DEFS = [
+  ['M1','Data completeness',[1.0,0.85,0.7,0.5]],
+  ['M2','Org change risk',[1.0,0.85,0.7]],
+  ['M3','Contract complexity',[1.0,0.85,0.7,0.6]],
+  ['M4','Payment jurisdiction',[1.0,0.85,0.7]],
+  ['M5','Execution complexity',[1.0,0.85,0.7,0.6]],
+  ['M6','Seasonal pressure',[1.0,0.95,0.9,0.85]],
+  ['M7','Sales/BD bandwidth',[1.0,0.85,0.7,0.5]]
+];
+
+/* live state */
+let D = structuredClone(SAMPLE);
+const E=Math.E, ln=Math.log, exp=Math.exp, EPS=1e-9;
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+
+/* ============================================================
+   FORMULAS  (X1..X14)  — transcribed from notebook
+   ============================================================ */
+function compute(){
+  const r={};
+  // X1
+  {const d=D.p1;
+   const f_scope=0.25*d.rd+0.2*d.sa+0.2*d.ac+0.2*d.dp+0.15*d.rev;
+   const c_scope=0.3*d.ac+0.3*(1-d.am)+0.2*d.vd+0.2*d.ref;
+   const s_stab=Math.max(0,1-ln(1+d.sc)/ln(7))*(0.5+0.5*d.fc);
+   const s_s=0.4*f_scope+0.3*c_scope+0.3*s_stab;
+   const v_mod=1-0.05*(d.vt-1)*(1-d.coh);
+   const k_cli=0.5+0.5*d.cr;
+   r.x1=0.5*s_s+0.3*v_mod+0.2*k_cli;}
+  // X2
+  {const d=D.p2;
+   const mr=Math.max(0,Math.min((d.v-d.c)/d.v,1));
+   const v_n=1+1/(exp(-0.00003)*(d.v-150000));
+   const cpi=d.pp*d.tb/(d.bs+EPS);
+   const cpi_n=Math.min(cpi,1.3)/1.3;
+   const h_cash=(2*Math.min(d.crr,1)*d.cm)/(Math.min(d.crr,1)+d.cm+EPS);
+   const o_pen=Math.max(0,ln(1+d.co)/ln(5));
+   const m_stab=0.3*Math.min(d.mg/0.4,1)+0.25*d.rv+0.25*d.cp+0.25*d.rr;
+   const f_pre=0.3*mr+0.25*d.ps+0.2*d.bc+0.15*v_n+0.1*d.dk;
+   const f_flight=0.25*cpi_n+0.25*h_cash+0.25*o_pen+0.25*m_stab;
+   const a=Math.min(d.pp*2,1);
+   r.x2=(1-a)*f_pre+a*(0.4*f_pre+0.6*f_flight);}
+  // X3
+  {const d=D.p3;
+   const ta_p=Math.min(1,d.ta);
+   const s_fill=Math.min(d.rl/d.rr,1);
+   const s_cap=(2*s_fill*ta_p)/(s_fill+ta_p+EPS);
+   const c_comp=0.25*d.se+0.25*d.dm+0.2*d.sk+0.15*d.sr+0.15*d.ct;
+   const e_conf=Math.min(ln(1+d.pp)/ln(11),1);
+   const r_res=(1-0.4*d.kc*(1-d.bs))*(1-0.5*d.od);
+   const f_fat=exp(-1.5*d.ot)*Math.max(0,1-d.on/8)*(1-0.4*d.bn);
+   const i_r=0.5*d.tl+0.5*d.ld;
+   r.x3=0.25*s_cap+0.2*c_comp+0.1*e_conf+0.15*r_res+0.15*f_fat+0.15*i_r;}
+  // X4
+  {const d=D.p4;
+   const tz_p=Math.max(0,1-Math.abs(12-d.tz)/12);
+   const t_p=Math.min(d.tr/d.te_est,1);
+   const spi=d.mc/(d.mc+d.md+EPS);
+   const d_sev=exp(-0.5*d.cd)*Math.max(0,1-d.ad/(d.bf+1));
+   const elapsed=d.te/d.td+EPS;
+   const completion=d.mc/d.mt+EPS;
+   const p_sched=1/(1+exp(-8*(completion-elapsed)));
+   const v_health=0.6*(Math.min(1.2,d.vl)/1.2)+0.4*d.bl;
+   const d_struct=0.3*Math.max(0,1-d.de/8)+0.3*d.ph+0.2*(1-0.4*d.pn)+0.2*tz_p;
+   const x4_pre=0.35*t_p+0.30*d_struct+0.35*v_health;
+   const x4_flight=0.25*spi+0.2*d_sev+0.2*p_sched+0.15*v_health+0.1*t_p+0.1*d_struct;
+   const a=Math.min((d.te/(d.td+EPS))*2,1);
+   r.x4=(1-a)*x4_pre+a*x4_flight;}
+  // X5
+  {const d=D.p5;
+   const sz=exp(-Math.pow(ln(d.e_client)-ln(d.e_ideal),2)/(2*Math.pow(1.5,2)));
+   const r_resp=exp(-0.04*d.rt);
+   const m_qual=d.ma*Math.min(d.mf/3,1);
+   const c_infra=0.25*Math.min(d.ec/4,1)+0.25*Math.min(d.dc/15,1)+0.25*d.sp+0.25*d.coc;
+   const q_eng=0.3*d.fd+0.3*d.pp+0.2*d.es+0.2*d.dma;
+   const r_client=0.35*d.py+0.25*d.ch+0.2*d.cr+0.2*sz;
+   const n_damp=Math.max(0,1-0.12*d.ng);
+   r.x5=n_damp*(0.25*r_resp+0.2*q_eng+0.15*m_qual+0.2*c_infra+0.2*r_client);}
+  // X6
+  {const d=D.p6;
+   const r_blend=Math.pow(d.ir,d.wt)*Math.pow(d.er,1-d.wt);
+   const a_bonus=1+0.15*(d.ag-0.5);
+   const d_eff=Math.pow((d.ds+1)/(d.dr+1),0.7);
+   const f_p=Math.pow(d.fr,0.8);
+   const s_rev=exp(-0.3*(d.td-1));
+   r.x6=a_bonus*(0.3*r_blend+0.15*f_p+0.15*d_eff+0.15*s_rev+0.15*d.ct);}
+  // X7
+  {const d=D.p7;
+   const c_burden=0.25*d.nc+0.25*Math.min(d.is_n/6,1)+0.2*d.ai+0.15*d.pc+0.15*d.tn;
+   const c_mit=0.2*d.exp+0.15*d.dsm+0.15*d.re+0.2*((d.stf-1)/4)+0.15*d.pt+0.15*(1-0.3*d.qs);
+   const c_net=1/(1+exp(-6*(c_mit-c_burden)));
+   const e_creative=0.6*d.cf+0.4*(1-d.tdr);
+   r.x7=0.6*c_net+0.4*e_creative;}
+  // X8
+  {const d=D.p8;
+   const r_prep=(d.rm+1)/(d.ri+1);
+   const r_mat=1/(1+exp(5*((d.rr/(d.ri+1))-0.3)));
+   const d_health=(1-d.db/(d.de+1))*((d.ci+d.tp)/2);
+   const c_sec=0.6*d.sc+0.4*d.ctr;
+   const ea_p=exp(-0.4*d.ea);
+   const r_cat=1-Math.sqrt(0.2*d.scr**2+0.2*d.tcr**2+0.15*d.fnr**2+0.1*d.lgr**2+0.1*d.rpr**2+0.15*(d.db/(d.de+1))**2+0.1*d.tnr**2);
+   r.x8=ea_p*(0.2*Math.min(r_prep,1)+0.2*r_mat+0.15*d_health+0.15*c_sec+0.3*r_cat);}
+  // X9
+  {const d=D.p9;
+   const nps_n=d.nps/10;
+   const s_client=0.2*d.cs+0.15*nps_n+0.2*d.ef+0.15*d.pr+0.1*d.ref+0.1*d.tc+0.1*d.cl;
+   const s_internal=0.5*d.ts+0.5*d.ip;
+   const p_comp=Math.max(0,1-ln(1+d.ce)/ln(6));
+   r.x9=p_comp*(0.65*s_client+0.35*s_internal);}
+  // X10
+  {const d=D.p10;
+   const v_market=0.25*d.sv+0.25*d.bp+0.25*d.csp+0.25*d.mkt;
+   const lrn=1-exp(-0.5*d.n_new);
+   const v_know=0.35*d.lp+0.35*d.in_n+0.3*lrn;
+   const v_port=0.5*d.vta+0.5*d.pa;
+   r.x10=0.45*v_market+0.30*v_know+0.25*v_port;}
+  // X11
+  {const d=D.p11;
+   const ph_n=Math.min(d.phn/5,1);
+   const cr_n=Math.min(d.cr/4,1);
+   const ltv_n=1/(1+exp(-0.8*(d.ltv/(d.fv+EPS)-3)));
+   const v_growth=0.2*d.rp+0.15*d.ut+0.15*d.esv+0.15*d.rf+0.1*ph_n+0.1*d.rt+0.05*cr_n+0.1*d.exp;
+   r.x11=0.55*v_growth+0.45*ltv_n;}
+  // X12
+  {const d=D.p12;
+   const n_comp=Math.max(0,1-d.nc/8);
+   const pr_comp=exp(-2*Math.pow(Math.max(0,(d.pours-d.pmkt)/(d.pmkt+EPS)),2));
+   r.x12=0.2*n_comp+0.2*d.wh+0.2*d.usp+0.15*pr_comp+0.15*d.rla+0.1*d.rpq;}
+  // X13
+  {const d=D.p13;
+   const mt_n=Math.min(d.mt/5,1);
+   const rt_s=exp(-0.05*d.rt);
+   const st_n=Math.min(d.sth/4,1);
+   const doc_n=Math.min(d.doc/6,1);
+   const ng_n=Math.max(0,1-0.15*d.ng);
+   r.x13=ng_n*(0.2*mt_n+0.2*rt_s+0.15*st_n+0.15*doc_n+0.2*d.fb+0.15*d.pro);}
+  // X14
+  {const d=D.p14;
+   r.x14=0.5*d.qs+0.1*d.ac+0.2*d.wm+0.2*d.pq;}
+
+  // Gates & modifiers
+  let G=1; D.gates.forEach(g=>{if(g===0)G=0;});
+  let M=1; D.mods.forEach(m=>M*=m);
+
+  const xs=[r.x1,r.x2,r.x3,r.x4,r.x5,r.x6,r.x7,r.x8,r.x9,r.x10,r.x11,r.x12,r.x13,r.x14];
+  let wx=0; xs.forEach((x,i)=>wx+=x*WEIGHTS[i]);
+  const score=100*G*M*wx;
+  return {xs,G,M,wx,score};
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function bandColor(v){ // 0..1
+  if(v<0.4)return'#ff6b6b'; if(v<0.6)return'#ffb454'; if(v<0.8)return'#5b9dff'; return'#4dd4ac';
+}
+function scoreBand(s){
+  if(s<35)return['WEAK','#ff6b6b']; if(s<55)return['DEVELOPING','#ffb454'];
+  if(s<70)return['VIABLE','#5b9dff']; if(s<85)return['STRONG','#4dd4ac'];
+  return['EXCEPTIONAL','#4dd4ac'];
+}
+
+function drawGauge(score){
+  const c=document.getElementById('gauge'),x=c.getContext('2d');
+  x.clearRect(0,0,c.width,c.height);
+  const cx=180,cy=185,R=145, start=Math.PI, end=2*Math.PI;
+  // track segments
+  const segs=[[0,.35,'#ff6b6b'],[.35,.55,'#ffb454'],[.55,.70,'#5b9dff'],[.70,.85,'#3a9d83'],[.85,1,'#4dd4ac']];
+  segs.forEach(([a,b,col])=>{
+    x.beginPath();x.lineWidth=18;x.strokeStyle=col;
+    x.arc(cx,cy,R,start+a*Math.PI,start+b*Math.PI);x.stroke();
+  });
+  // needle
+  const p=clamp(score/100,0,1), ang=start+p*Math.PI;
+  x.beginPath();x.lineWidth=4;x.strokeStyle='#e6edf3';x.lineCap='round';
+  x.moveTo(cx,cy);x.lineTo(cx+Math.cos(ang)*(R-30),cy+Math.sin(ang)*(R-30));x.stroke();
+  x.beginPath();x.fillStyle='#e6edf3';x.arc(cx,cy,7,0,7);x.fill();
+}
+
+function drawRadar(xs){
+  const c=document.getElementById('radar'),x=c.getContext('2d');
+  const W=c.width,H=c.height,cx=W/2,cy=H/2+10,R=140,N=14;
+  x.clearRect(0,0,W,H);
+  // grid
+  for(let g=1;g<=4;g++){
+    x.beginPath();x.strokeStyle='#26303f';x.lineWidth=1;
+    for(let i=0;i<=N;i++){const a=-Math.PI/2+i/N*2*Math.PI,rr=R*g/4;
+      const px=cx+Math.cos(a)*rr,py=cy+Math.sin(a)*rr;
+      i?x.lineTo(px,py):x.moveTo(px,py);}
+    x.stroke();
+  }
+  // spokes + labels
+  x.fillStyle='#8b97a7';x.font='10px Segoe UI';x.textAlign='center';
+  for(let i=0;i<N;i++){const a=-Math.PI/2+i/N*2*Math.PI;
+    x.beginPath();x.strokeStyle='#26303f';x.moveTo(cx,cy);
+    x.lineTo(cx+Math.cos(a)*R,cy+Math.sin(a)*R);x.stroke();
+    x.fillText('X'+(i+1),cx+Math.cos(a)*(R+16),cy+Math.sin(a)*(R+16)+3);}
+  // data
+  x.beginPath();x.fillStyle='rgba(77,212,172,.18)';x.strokeStyle='#4dd4ac';x.lineWidth=2;
+  for(let i=0;i<N;i++){const a=-Math.PI/2+i/N*2*Math.PI,v=clamp(xs[i],0,1);
+    const px=cx+Math.cos(a)*R*v,py=cy+Math.sin(a)*R*v;
+    i?x.lineTo(px,py):x.moveTo(px,py);}
+  x.closePath();x.fill();x.stroke();
+  for(let i=0;i<N;i++){const a=-Math.PI/2+i/N*2*Math.PI,v=clamp(xs[i],0,1);
+    x.beginPath();x.fillStyle='#4dd4ac';
+    x.arc(cx+Math.cos(a)*R*v,cy+Math.sin(a)*R*v,3,0,7);x.fill();}
+}
+
+function render(){
+  const res=compute();
+  // gauge + score
+  drawGauge(res.score);
+  document.getElementById('scoreNum').textContent=res.score.toFixed(2);
+  const [lab,col]=scoreBand(res.score);
+  const sl=document.getElementById('scoreLabel');sl.textContent=lab;sl.style.color=col;
+  if(res.G===0){document.getElementById('scoreLabel').textContent='GATE FAILED';document.getElementById('scoreLabel').style.color='#ff6b6b';}
+
+  // gate strip
+  document.getElementById('gateStrip').innerHTML=GATE_DEFS.map((g,i)=>
+    `<span class="gate-pill ${D.gates[i]?'gp-pass':'gp-fail'}">${g[0]} ${D.gates[i]?'PASS':'FAIL'}</span>`).join('');
+
+  // composition bars
+  const contribs=res.xs.map((x,i)=>({i,name:PARAM_DEFS[i].name,c:100*res.G*res.M*WEIGHTS[i]*x,x}));
+  const maxc=Math.max(...contribs.map(o=>o.c),0.01);
+  document.getElementById('comp').innerHTML='<h3>Weighted contribution to final score</h3>'+contribs.map(o=>`
+    <div class="bar-row">
+      <div class="lab">X${o.i+1} · ${o.name.split('&')[0].split(',')[0].trim()}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(o.c/maxc*100).toFixed(1)}%;background:${bandColor(o.x)}"></div></div>
+      <div class="bar-val">+${o.c.toFixed(2)}</div>
+    </div>`).join('');
+
+  drawRadar(res.xs);
+
+  // headline
+  document.getElementById('headline').innerHTML=`
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)"><span style="color:var(--muted)">Raw weighted (Σwᵢxᵢ)</span><b>${res.wx.toFixed(4)}</b></div>
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)"><span style="color:var(--muted)">Gate product (G)</span><b style="color:${res.G?'#4dd4ac':'#ff6b6b'}">${res.G}</b></div>
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)"><span style="color:var(--muted)">Modifier product (M)</span><b>${res.M.toFixed(3)}</b></div>
+    <div style="display:flex;justify-content:space-between;padding:14px 0 6px;font-size:16px"><span>FINAL SCORE</span><b style="color:${col}">${res.score.toFixed(2)}</b></div>
+    <div style="margin-top:10px;color:var(--muted);font-size:11.5px">Top driver: <b style="color:var(--txt)">X${contribs.sort((a,b)=>b.c-a.c)[0].i+1}</b> · weakest parameter: <b style="color:var(--txt)">X${res.xs.indexOf(Math.min(...res.xs))+1}</b></div>`;
+
+  // update inline param scores
+  res.xs.forEach((x,i)=>{
+    const pv=document.getElementById('pv'+i); if(pv)pv.textContent=x.toFixed(3);
+    const mf=document.getElementById('mf'+i); if(mf){mf.style.width=(clamp(x,0,1)*100)+'%';mf.style.background=bandColor(x);}
+  });
+}
+
+/* ============================================================
+   BUILD UI
+   ============================================================ */
+function buildGates(){
+  document.getElementById('gatesGrid').innerHTML=GATE_DEFS.map((g,i)=>`
+    <div class="toggle ${D.gates[i]?'on':'off'}" onclick="toggleGate(${i})">
+      <div class="tname">${g[0]} · ${g[1]}</div>
+      <div class="tdesc">${g[2]}</div>
+      <div class="tstate">${D.gates[i]?'PASS':'FAIL'}</div>
+    </div>`).join('');
+}
+function toggleGate(i){D.gates[i]=D.gates[i]?0:1;buildGates();render();}
+
+function buildMods(){
+  document.getElementById('modsBox').innerHTML=MOD_DEFS.map((m,i)=>{
+    const opts=m[2].map(v=>`<option value="${v}" ${D.mods[i]===v?'selected':''}>${v.toFixed(2)}</option>`).join('');
+    return `<div class="mod-row">
+      <label>${m[0]} · ${m[1]}</label>
+      <select onchange="setMod(${i},this.value)" style="background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:7px;padding:6px">${opts}</select>
+      <span class="mval" id="mv${i}">${D.mods[i].toFixed(2)}</span></div>`;
+  }).join('');
+}
+function setMod(i,v){D.mods[i]=parseFloat(v);document.getElementById('mv'+i).textContent=D.mods[i].toFixed(2);render();}
+
+function buildParams(){
+  document.getElementById('params').innerHTML=PARAM_DEFS.map((p,i)=>{
+    const fields=p.fields.map(([k,label,type])=>{
+      const val=D[p.key][k];
+      if(type==='r'){
+        return `<div class="field"><div class="fl"><b>${k}</b> ${label}</div>
+          <span class="num-out" id="out_${p.key}_${k}">${(+val).toFixed(2)}</span>
+          <input type="range" min="0" max="1" step="0.01" value="${val}" style="grid-column:1/3"
+            oninput="setVal('${p.key}','${k}',this.value,'r')"></div>`;
+      } else {
+        const step=type==='f'?'0.1':type==='n'?'1000':'1';
+        return `<div class="field"><div class="fl"><b>${k}</b> ${label}</div>
+          <input type="number" step="${step}" value="${val}" oninput="setVal('${p.key}','${k}',this.value,'${type}')"></div>`;
+      }
+    }).join('');
+    return `<div class="panel pcard" id="card${i}">
+      <div class="phead" onclick="document.getElementById('card${i}').classList.toggle('open')">
+        <div class="pid"><div class="pbadge">${i+1}</div>
+          <div><div class="pname">${p.name}</div><div class="pweight">weight ${WEIGHTS[i].toFixed(2)}</div></div></div>
+        <div class="pscore"><div class="mini-track"><div class="mini-fill" id="mf${i}"></div></div>
+          <span class="pv" id="pv${i}">0</span><span class="chev">▸</span></div>
+      </div>
+      <div class="pbody">${fields}</div>
+    </div>`;
+  }).join('');
+}
+function setVal(pk,k,v,type){
+  D[pk][k]= type==='r'||type==='f' ? parseFloat(v) : (type==='n'?parseFloat(v):parseInt(v));
+  if(type==='r'){const o=document.getElementById(`out_${pk}_${k}`);if(o)o.textContent=parseFloat(v).toFixed(2);}
+  render();
+}
+
+/* controls */
+function resetSample(){D=structuredClone(SAMPLE);buildGates();buildMods();buildParams();render();}
+function randomize(){
+  PARAM_DEFS.forEach(p=>p.fields.forEach(([k,,type])=>{
+    if(type==='r')D[p.key][k]=+(Math.random()).toFixed(2);
+    else if(type==='i')D[p.key][k]=Math.floor(Math.random()*8);
+    else if(type==='f')D[p.key][k]=+(Math.random()*8).toFixed(1);
+  }));
+  buildParams();render();
+}
+function copySummary(){
+  const res=compute();
+  let t=`PROJECT SCORE: ${res.score.toFixed(2)}/100  (band: ${scoreBand(res.score)[0]})\nG=${res.G}  M=${res.M.toFixed(3)}\n\n`;
+  res.xs.forEach((x,i)=>t+=`X${i+1} ${PARAM_DEFS[i].name}: ${x.toFixed(3)} (w=${WEIGHTS[i]})\n`);
+  navigator.clipboard.writeText(t).then(()=>alert('Summary copied to clipboard.'));
+}
+
+/* init */
+buildGates();buildMods();buildParams();render();
+</script>
+</body>
+</html>

@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project Score Console</title>
+<style>
+  :root{
+    --bg:#0a0e14; --panel:#121821; --panel2:#0f141c; --line:#1f2937;
+    --txt:#e5e9f0; --mut:#8b97a8; --accent:#4ade80; --accent2:#38bdf8;
+    --warn:#fbbf24; --bad:#f87171; --good:#4ade80;
+    --grad1:#06b6d4; --grad2:#8b5cf6;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:
+    radial-gradient(1200px 600px at 80% -10%,rgba(56,189,248,.08),transparent),
+    radial-gradient(1000px 500px at 0% 100%,rgba(139,92,246,.08),transparent),
+    var(--bg);color:var(--txt);line-height:1.5;padding:24px;min-height:100vh}
+  .wrap{max-width:1280px;margin:0 auto}
+  .eyebrow{font-size:11px;letter-spacing:3px;color:var(--accent2);text-transform:uppercase;font-weight:600}
+  h1{font-size:30px;font-weight:700;margin:4px 0 6px;background:linear-gradient(90deg,#fff,#9ca3af);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{color:var(--mut);font-size:14px;max-width:760px;margin-bottom:18px}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px}
+  button.tb{background:var(--panel);border:1px solid var(--line);color:var(--txt);
+    padding:8px 14px;border-radius:8px;font-size:12.5px;cursor:pointer;transition:.15s}
+  button.tb:hover{border-color:var(--accent2);color:#fff;background:#16202c}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:900px){.grid{grid-template-columns:1fr}}
+  .card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);
+    border-radius:14px;padding:18px;box-shadow:0 8px 30px rgba(0,0,0,.25)}
+  .card h2{font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mut);margin-bottom:14px;font-weight:600}
+  /* GAUGE */
+  .gauge-card{grid-column:1/-1;display:grid;grid-template-columns:340px 1fr;gap:24px;align-items:center}
+  @media(max-width:900px){.gauge-card{grid-template-columns:1fr}}
+  .gauge-wrap{position:relative;text-align:center}
+  .score-num{font-size:54px;font-weight:800;line-height:1}
+  .score-label{font-size:13px;letter-spacing:2px;text-transform:uppercase;font-weight:700;margin-top:4px}
+  .bands{display:flex;justify-content:space-between;font-size:9.5px;color:var(--mut);margin-top:8px;letter-spacing:.5px}
+  /* composition */
+  .comp-row{display:flex;align-items:center;gap:10px;margin-bottom:9px;font-size:13px}
+  .comp-name{width:150px;color:var(--mut)}
+  .comp-bar{flex:1;height:9px;background:#0b1018;border-radius:6px;overflow:hidden}
+  .comp-fill{height:100%;border-radius:6px;transition:width .4s}
+  .comp-val{width:70px;text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+  /* gates */
+  .gate{display:flex;align-items:center;justify-content:space-between;padding:11px 12px;
+    background:#0d131c;border:1px solid var(--line);border-radius:10px;margin-bottom:9px;cursor:pointer;transition:.15s}
+  .gate:hover{border-color:#2b3a4d}
+  .gate-info b{font-size:13px}
+  .gate-info span{display:block;font-size:11px;color:var(--mut);margin-top:2px}
+  .pill{font-size:10.5px;font-weight:700;letter-spacing:1px;padding:4px 10px;border-radius:20px}
+  .pill.pass{background:rgba(74,222,128,.12);color:var(--good);border:1px solid rgba(74,222,128,.4)}
+  .pill.fail{background:rgba(248,113,113,.12);color:var(--bad);border:1px solid rgba(248,113,113,.4)}
+  /* dimensions */
+  .dim{grid-column:1/-1}
+  .dim-head{display:flex;justify-content:space-between;align-items:center;cursor:pointer;padding:6px 0}
+  .dim-head h3{font-size:15px;font-weight:700}
+  .dim-head .code{display:inline-block;font-size:11px;font-weight:700;color:var(--accent2);
+    background:rgba(56,189,248,.1);padding:2px 7px;border-radius:6px;margin-right:8px}
+  .dim-score{font-size:15px;font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums}
+  .dim-q{font-size:12px;color:var(--mut);margin-top:4px}
+  .inputs{display:grid;grid-template-columns:1fr 1fr;gap:14px 22px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+  @media(max-width:700px){.inputs{grid-template-columns:1fr}}
+  .field label{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px}
+  .field label .lname{color:var(--txt);font-weight:500}
+  .field label .lval{color:var(--accent2);font-weight:700;font-variant-numeric:tabular-nums}
+  .field .desc{font-size:10.5px;color:var(--mut);margin-top:3px}
+  input[type=range]{width:100%;-webkit-appearance:none;height:5px;border-radius:4px;
+    background:linear-gradient(90deg,var(--grad1),var(--grad2));outline:none;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;
+    background:#fff;border:2px solid var(--accent2);cursor:pointer;box-shadow:0 0 6px rgba(56,189,248,.6)}
+  input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;background:#fff;border:2px solid var(--accent2);cursor:pointer}
+  input[type=number]{width:100%;background:#0b1018;border:1px solid var(--line);color:var(--txt);
+    padding:7px 9px;border-radius:7px;font-size:13px}
+  input[type=number]:focus{outline:none;border-color:var(--accent2)}
+  .hint{font-size:10px;color:#5b6675;text-align:center;margin-top:24px}
+  .collapsed .inputs{display:none}
+  .breakdown{grid-column:1/-1}
+  .bd-table{width:100%;border-collapse:collapse;font-size:13px}
+  .bd-table td{padding:8px 6px;border-bottom:1px solid var(--line)}
+  .bd-table td:last-child{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+  .bd-table tr.total td{border-top:2px solid var(--accent2);border-bottom:none;font-size:15px;color:var(--accent)}
+  .bonus-tag{font-size:10px;color:var(--grad2);font-weight:700}
+  .gate-banner{grid-column:1/-1;background:rgba(248,113,113,.1);border:1px solid var(--bad);
+    color:var(--bad);padding:12px 16px;border-radius:10px;font-size:13px;font-weight:600;display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Project Evaluation Instrument</div>
+  <h1>Project Score Console</h1>
+  <p class="sub">Adjust any input and the score recalculates instantly — same formula as the model notebook,
+  including hard gates, scope-decay, CPI proxy, sigmoid risk penalty, exponential response decay,
+  and the logarithmic unbounded bonus layer.</p>
+
+  <div class="toolbar">
+    <button class="tb" onclick="randomize()">🎲 Randomize</button>
+    <button class="tb" onclick="loadSample()">↺ Reset to sample</button>
+    <button class="tb" onclick="copySummary()">📋 Copy summary</button>
+    <button class="tb" onclick="exportScenario()">⤓ Export scenario</button>
+    <button class="tb" onclick="document.getElementById('imp').click()">⤒ Import scenario</button>
+    <input id="imp" type="file" accept=".json" style="display:none" onchange="importScenario(event)">
+  </div>
+
+  <div class="grid">
+    <!-- GAUGE + COMPOSITION -->
+    <div class="card gauge-card">
+      <div class="gauge-wrap">
+        <svg viewBox="0 0 220 140" width="100%" style="max-width:300px">
+          <defs>
+            <linearGradient id="gg" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stop-color="#f87171"/><stop offset=".4" stop-color="#fbbf24"/>
+              <stop offset=".7" stop-color="#4ade80"/><stop offset="1" stop-color="#38bdf8"/>
+            </linearGradient>
+          </defs>
+          <path d="M20 120 A90 90 0 0 1 200 120" fill="none" stroke="#1a232f" stroke-width="16" stroke-linecap="round"/>
+          <path id="gaugeArc" d="M20 120 A90 90 0 0 1 200 120" fill="none" stroke="url(#gg)" stroke-width="16"
+                stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="283"/>
+          <line id="needle" x1="110" y1="120" x2="110" y2="42" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="110" cy="120" r="7" fill="#fff"/>
+        </svg>
+        <div class="score-num" id="scoreNum">0</div>
+        <div class="score-label" id="scoreLabel">—</div>
+        <div class="bands"><span>0</span><span>POOR</span><span>FAIR</span><span>GOOD</span><span>STRONG</span><span>200</span></div>
+      </div>
+      <div>
+        <h2>Score Composition — who's pulling the needle</h2>
+        <div id="composition"></div>
+      </div>
+    </div>
+
+    <div class="gate-banner" id="gateBanner">⛔ A hard gate has failed — project score is forced to 0. Resolve the gate before proceeding.</div>
+
+    <!-- GATES -->
+    <div class="card">
+      <h2>Hard Gates — non-negotiable pass/fail</h2>
+      <div id="gates"></div>
+    </div>
+
+    <!-- RADAR -->
+    <div class="card">
+      <h2>Shape of the Project — dimension profile</h2>
+      <svg id="radar" viewBox="0 0 260 240" width="100%" style="max-width:340px;display:block;margin:0 auto"></svg>
+    </div>
+
+    <!-- DIMENSIONS render here -->
+    <div id="dims" style="grid-column:1/-1;display:grid;gap:18px"></div>
+
+    <!-- BREAKDOWN -->
+    <div class="card breakdown">
+      <h2>Full Breakdown</h2>
+      <table class="bd-table" id="bdTable"></table>
+    </div>
+  </div>
+
+  <p class="hint">Score = G × (D1 + D2 + D3 + D4 + D5 + D6 + B_rev + B_ltv + B_strat) · runs entirely in your browser, nothing leaves this page.</p>
+</div>
+
+<script>
+const EPS=1e-9;
+const clamp=(x,lo=0,hi=1)=>Math.max(lo,Math.min(x,hi));
+
+// ---------- DATA MODEL ----------
+const SAMPLE={
+  gcontract:1,glegal:1,gclient:1,gfeasible:1,gready:1,
+  rd:.85,ac:.90,am:.15,fc:.80,sc:2,
+  v:2500000,c:1600000,cm:1.00,pp:.25,bs:400000,tb:1800000,ep:.70,
+  ta:.90,sk:.80,ld:.85,kc:.30,bf:.60,
+  tr:90,te:100,mc:4,mt:12,ri:8,rm:7,rr:2,db:1,de:5,qc:.75,
+  rt:6.0,coc:.80,py:1.00,cs:.85,dma:1.00,ng:1,
+  sv:.75,bp:.80,rp:.75,ut:.60,wh:.65,qs:.70,
+  ltv:7500000,csp:.70,vta:.60,rf:.50
+};
+let d={...SAMPLE};
+
+// ---------- GATE / DIMENSION DEFINITIONS ----------
+const GATES=[
+  {k:'gcontract',t:'G1 · Contract',s:'Signed contract or credible approval path exists'},
+  {k:'glegal',t:'G2 · Legal',s:'Legal, ethical & sanctions clearance confirmed'},
+  {k:'gclient',t:'G3 · Client',s:'Client verified with legitimate payment path'},
+  {k:'gfeasible',t:'G4 · Feasibility',s:'Technically deliverable with current capability'},
+  {k:'gready',t:'G5 · Readiness',s:'Accountable owner, kickoff path & operational readiness'},
+];
+
+// field types: r=ratio 0-1 slider, n=number, inv = invert hint
+const DIMS=[
+  {code:'D1',name:'Scope & Clarity',q:'Is the work clearly defined enough to execute well?',
+   fields:[
+     {k:'rd',l:'Requirements documented',t:'r',d:'How well are requirements documented (higher = clearer)'},
+     {k:'ac',l:'Acceptance criteria',t:'r',d:'How clearly is "done" defined'},
+     {k:'am',l:'Ambiguity index',t:'r',d:'How unclear the scope is (lower = better)'},
+     {k:'fc',l:'Feature-creep control',t:'r',d:'Change-control discipline (higher = better)'},
+     {k:'sc',l:'Scope changes since kickoff',t:'n',min:0,step:1,d:'Number of scope changes (lower = more stable)'},
+   ]},
+  {code:'D2',name:'Commercial Value',q:'Will the project create healthy financial value?',
+   fields:[
+     {k:'v',l:'Deal value (₹)',t:'n',min:0,step:50000,d:'Total deal value / revenue'},
+     {k:'c',l:'Cost to deliver (₹)',t:'n',min:0,step:50000,d:'Estimated delivery cost (lower = better margin)'},
+     {k:'cm',l:'Payment compliance',t:'r',d:'How well payments match agreed terms'},
+     {k:'pp',l:'Percent complete',t:'r',d:'How much of the project is done'},
+     {k:'bs',l:'Budget spent (₹)',t:'n',min:0,step:50000,d:'Budget spent to date'},
+     {k:'tb',l:'Total approved budget (₹)',t:'n',min:0,step:50000,d:'Total approved budget'},
+     {k:'ep',l:'Expansion potential',t:'r',d:'Chance of future expansion'},
+   ]},
+  {code:'D3',name:'Delivery Capacity',q:'Can the current team actually deliver it well?',
+   fields:[
+     {k:'ta',l:'Team availability',t:'r',hi:2,d:'Bandwidth free (capped at 1)'},
+     {k:'sk',l:'Skill fit',t:'r',d:'How well team skills fit the work'},
+     {k:'ld',l:'Lead readiness',t:'r',d:'How ready the delivery lead is'},
+     {k:'kc',l:'Key-person concentration',t:'r',d:'Reliance on a few people (lower = safer)'},
+     {k:'bf',l:'Bench / backup coverage',t:'r',d:'Backup depth (higher = more coverage)'},
+   ]},
+  {code:'D4',name:'Execution Risk',q:'Can it be delivered without schedule collapse?',
+   fields:[
+     {k:'tr',l:'Timeline requested (days)',t:'n',min:1,step:1,d:'Client-requested timeline'},
+     {k:'te',l:'Timeline estimated (days)',t:'n',min:1,step:1,d:'Realistic internal estimate'},
+     {k:'mc',l:'Milestones on time',t:'n',min:0,step:1,d:'Milestones finished on time'},
+     {k:'mt',l:'Total milestones',t:'n',min:1,step:1,d:'Total planned milestones'},
+     {k:'ri',l:'Risks identified',t:'n',min:0,step:1,d:'Number of known risks'},
+     {k:'rm',l:'Risks mitigated',t:'n',min:0,step:1,d:'Risks with mitigation plan'},
+     {k:'rr',l:'Risks materialized',t:'n',min:0,step:1,d:'Risks that actually occurred (lower = better)'},
+     {k:'db',l:'Blocked dependencies',t:'n',min:0,step:1,d:'Currently blocked dependencies'},
+     {k:'de',l:'Total dependencies',t:'n',min:0,step:1,d:'Total external dependencies'},
+     {k:'qc',l:'Quality confidence',t:'r',d:'Confidence in delivery quality'},
+   ]},
+  {code:'D5',name:'Client & Engagement',q:'Is the client responsive, reliable, and workable?',
+   fields:[
+     {k:'rt',l:'Avg reply time (hours)',t:'n',min:0,step:.5,d:'Lower = better (exponential decay)'},
+     {k:'coc',l:'Communication clarity',t:'r',d:'How clear communication is'},
+     {k:'py',l:'Payment reliability',t:'r',d:'How reliably the client pays'},
+     {k:'cs',l:'Client satisfaction',t:'r',d:'How satisfied the client is'},
+     {k:'dma',l:'Decision-maker access',t:'r',d:'How easily you reach the decision-maker'},
+     {k:'ng',l:'Negative signals',t:'n',min:0,step:1,d:'Negative client signals (lower = healthier)'},
+   ]},
+  {code:'D6',name:'Strategic Growth',q:'Does this help the company grow beyond the project?',
+   fields:[
+     {k:'sv',l:'Strategic fit',t:'r',d:'Fit with business goals'},
+     {k:'bp',l:'Brand benefit',t:'r',d:'Brand / reputation benefit'},
+     {k:'rp',l:'Repeat-business chance',t:'r',d:'Chance of repeat business'},
+     {k:'ut',l:'Upsell potential',t:'r',d:'Potential to upsell'},
+     {k:'wh',l:'Win / keep probability',t:'r',d:'Chance of winning/keeping the deal'},
+     {k:'qs',l:'Source quality',t:'r',d:'Quality of the lead source'},
+   ]},
+  {code:'B+',name:'Bonus Layer (unbounded)',q:'Long-term leverage that lifts the score above the cap.',
+   fields:[
+     {k:'ltv',l:'Lifetime value (₹)',t:'n',min:0,step:100000,d:'Long-term value of this client'},
+     {k:'csp',l:'Case-study potential',t:'r',d:'Value as a marketing asset'},
+     {k:'vta',l:'Vertical alignment',t:'r',d:'Fit with target industry/vertical'},
+     {k:'rf',l:'Referral force',t:'r',d:'Likelihood of generating referrals'},
+   ]},
+];
+
+// ---------- SCORING FUNCTIONS ----------
+function evaluateGates(d){return [d.gcontract,d.glegal,d.gclient,d.gfeasible,d.gready].reduce((a,b)=>a*(b?1:0),1);}
+
+function d1(d){
+  const q=.30*clamp(d.rd)+.25*clamp(d.ac)+.25*(1-clamp(d.am))+.20*clamp(d.fc);
+  const decay=1/(1+0.2*Math.max(0,d.sc));
+  return 20*q*decay;
+}
+function d2(d){
+  const v=Math.max(EPS,d.v),c=Math.max(0,d.c),tb=Math.max(EPS,d.tb),bs=Math.max(0,d.bs);
+  const margin=Math.max(0,(v-c)/(v+EPS));
+  const cpi=(clamp(d.pp)*tb)/(bs+EPS);
+  const s=.35*Math.min(margin/0.4,1)+.25*(Math.min(cpi,1.3)/1.3)+.20*clamp(d.cm)+.20*clamp(d.ep);
+  return 25*s;
+}
+function d3(d){
+  const res=0.5*(1-clamp(d.kc))+0.5*clamp(d.bf);
+  const s=.35*Math.min(Math.max(0,d.ta),1)+.30*clamp(d.sk)+.15*clamp(d.ld)+.20*res;
+  return 20*s;
+}
+function d4(d){
+  const te=Math.max(EPS,d.te);
+  const pressure=Math.min(Math.max(0,d.tr)/(te+EPS),1);
+  let spi=Math.max(0,d.mc)/(Math.max(0,d.mt)+EPS); spi=clamp(spi,0,1.5); spi=Math.min(spi,1);
+  const prep=Math.max(0,(Math.max(0,d.rm)+1)/(Math.max(0,d.ri)+1));
+  const matRatio=Math.max(0,d.rr)/(Math.max(0,d.ri)+1);
+  const matPen=1/(1+Math.exp(5*(matRatio-0.3)));
+  const depHealth=clamp(1-(Math.max(0,d.db)/(Math.max(0,d.de)+1)));
+  const s=.20*pressure+.15*spi+.20*prep+.15*matPen+.15*depHealth+.15*clamp(d.qc);
+  return 20*s;
+}
+function d5(d){
+  const resp=Math.exp(-0.04*Math.max(0,d.rt));
+  const damper=Math.max(0,1-0.15*Math.max(0,d.ng));
+  const s=.30*resp+.20*clamp(d.coc)+.20*clamp(d.py)+.20*clamp(d.cs)+.10*clamp(d.dma);
+  return 20*damper*s;
+}
+function d6(d){
+  const s=.25*clamp(d.sv)+.20*clamp(d.bp)+.20*clamp(d.rp)+.15*clamp(d.ut)+.10*clamp(d.wh)+.10*clamp(d.qs);
+  return 25*s;
+}
+function bonuses(d){
+  const v=Math.max(EPS,d.v),ltv=Math.max(0,d.ltv);
+  return {
+    rev:8*Math.log(1+v/100000),
+    ltv:6*Math.log(1+ltv/(v+EPS)),
+    strat:5*((clamp(d.csp)+clamp(d.vta)+clamp(d.rf))/3)
+  };
+}
+
+function compute(){
+  const G=evaluateGates(d);
+  const D=[d1(d),d2(d),d3(d),d4(d),d5(d),d6(d)];
+  const b=bonuses(d);
+  const core=D.reduce((a,x)=>a+x,0);
+  const bonusTotal=b.rev+b.ltv+b.strat;
+  const score=G*(core+bonusTotal);
+  return {G,D,b,core,bonusTotal,score};
+}
+
+// ---------- RENDER ----------
+function fmt(n){return (Math.round(n*100)/100).toLocaleString('en-IN');}
+
+function buildGates(){
+  const el=document.getElementById('gates'); el.innerHTML='';
+  GATES.forEach(g=>{
+    const pass=!!d[g.k];
+    const div=document.createElement('div');
+    div.className='gate';
+    div.innerHTML=`<div class="gate-info"><b>${g.t}</b><span>${g.s}</span></div>
+      <span class="pill ${pass?'pass':'fail'}">${pass?'PASS':'FAIL'}</span>`;
+    div.onclick=()=>{d[g.k]=d[g.k]?0:1;render();};
+    el.appendChild(div);
+  });
+}
+
+function buildDims(){
+  const el=document.getElementById('dims'); el.innerHTML='';
+  DIMS.forEach((dim,idx)=>{
+    const card=document.createElement('div');
+    card.className='card dim'+(idx>1?' collapsed':'');
+    const fieldsHTML=dim.fields.map(f=>{
+      const val=d[f.k];
+      if(f.t==='r'){
+        const hi=f.hi||1;
+        return `<div class="field">
+          <label><span class="lname">${f.l}</span><span class="lval" id="lv_${f.k}">${(+val).toFixed(2)}</span></label>
+          <input type="range" min="0" max="${hi}" step="0.01" value="${val}"
+            oninput="setVal('${f.k}',parseFloat(this.value))">
+          <div class="desc">${f.d}</div></div>`;
+      }else{
+        return `<div class="field">
+          <label><span class="lname">${f.l}</span><span class="lval" id="lv_${f.k}">${fmt(val)}</span></label>
+          <input type="number" min="${f.min}" step="${f.step}" value="${val}"
+            oninput="setVal('${f.k}',parseFloat(this.value)||0)">
+          <div class="desc">${f.d}</div></div>`;
+      }
+    }).join('');
+    card.innerHTML=`
+      <div class="dim-head" onclick="this.parentElement.classList.toggle('collapsed')">
+        <div><h3><span class="code">${dim.code}</span>${dim.name}</h3>
+        <div class="dim-q">${dim.q}</div></div>
+        <div class="dim-score" id="ds_${dim.code}">—</div>
+      </div>
+      <div class="inputs">${fieldsHTML}</div>`;
+    el.appendChild(card);
+  });
+}
+
+function setVal(k,v){d[k]=v;document.getElementById('lv_'+k).textContent=
+  (Number.isInteger(SAMPLE[k])&&SAMPLE[k]>10)||k==='v'||k==='c'||k==='bs'||k==='tb'||k==='ltv'?fmt(v):
+  (DIMS.flatMap(x=>x.fields).find(f=>f.k===k)?.t==='r'?(+v).toFixed(2):fmt(v));
+  render();}
+
+function render(){
+  const r=compute();
+  // gauge
+  const max=200, pct=clamp(r.score/max,0,1);
+  document.getElementById('gaugeArc').setAttribute('stroke-dashoffset',283*(1-pct));
+  const ang=-90+pct*180;
+  const rad=ang*Math.PI/180, len=78;
+  document.getElementById('needle').setAttribute('x2',110+len*Math.sin(rad));
+  document.getElementById('needle').setAttribute('y2',120-len*Math.cos(rad));
+  document.getElementById('scoreNum').textContent=fmt(r.score);
+  const labels=[[40,'POOR','#f87171'],[80,'FAIR','#fbbf24'],[120,'GOOD','#4ade80'],[999,'STRONG','#38bdf8']];
+  const lbl=r.G===0?['GATE FAILED','#f87171']:labels.find(l=>r.score<l[0]).slice(1);
+  document.getElementById('scoreLabel').textContent=lbl[0];
+  document.getElementById('scoreLabel').style.color=lbl[1];
+  document.getElementById('scoreNum').style.color=lbl[1];
+
+  // gate banner
+  document.getElementById('gateBanner').style.display=r.G===0?'block':'none';
+
+  // composition
+  const comp=[['D1 Scope',r.D[0],'#38bdf8'],['D2 Commercial',r.D[1],'#22d3ee'],
+    ['D3 Delivery',r.D[2],'#4ade80'],['D4 Risk',r.D[3],'#a3e635'],
+    ['D5 Client',r.D[4],'#fbbf24'],['D6 Strategic',r.D[5],'#f472b6'],
+    ['B Revenue',r.b.rev,'#8b5cf6'],['B LTV',r.b.ltv,'#a78bfa'],['B Strategic',r.b.strat,'#c4b5fd']];
+  const cmax=Math.max(...comp.map(c=>c[1]),1);
+  document.getElementById('composition').innerHTML=comp.map(c=>`
+    <div class="comp-row"><div class="comp-name">${c[0]}</div>
+      <div class="comp-bar"><div class="comp-fill" style="width:${(c[1]/cmax*100)}%;background:${c[2]}"></div></div>
+      <div class="comp-val">+${fmt(c[1])}</div></div>`).join('');
+
+  // dim scores
+  ['D1','D2','D3','D4','D5','D6'].forEach((c,i)=>document.getElementById('ds_'+c).textContent=fmt(r.D[i]));
+  document.getElementById('ds_B+').textContent='+'+fmt(r.bonusTotal);
+
+  // radar
+  drawRadar(r.D);
+
+  // breakdown
+  document.getElementById('bdTable').innerHTML=`
+    <tr><td>D1 · Scope & Clarity</td><td>${fmt(r.D[0])}</td></tr>
+    <tr><td>D2 · Commercial Value</td><td>${fmt(r.D[1])}</td></tr>
+    <tr><td>D3 · Delivery Capacity</td><td>${fmt(r.D[2])}</td></tr>
+    <tr><td>D4 · Execution Risk</td><td>${fmt(r.D[3])}</td></tr>
+    <tr><td>D5 · Client & Engagement</td><td>${fmt(r.D[4])}</td></tr>
+    <tr><td>D6 · Strategic Growth</td><td>${fmt(r.D[5])}</td></tr>
+    <tr><td>Core total</td><td>${fmt(r.core)}</td></tr>
+    <tr><td><span class="bonus-tag">BONUS</span> Revenue (log)</td><td>${fmt(r.b.rev)}</td></tr>
+    <tr><td><span class="bonus-tag">BONUS</span> Lifetime value (log)</td><td>${fmt(r.b.ltv)}</td></tr>
+    <tr><td><span class="bonus-tag">BONUS</span> Strategic leverage</td><td>${fmt(r.b.strat)}</td></tr>
+    <tr><td>Gate multiplier (G)</td><td>${r.G}</td></tr>
+    <tr class="total"><td>FINAL SCORE</td><td>${fmt(r.score)}</td></tr>`;
+}
+
+// max per dimension for radar normalization
+const DIM_MAX=[20,25,20,20,20,25];
+function drawRadar(D){
+  const svg=document.getElementById('radar');
+  const cx=130,cy=120,R=90,n=6;
+  const labels=['D1','D2','D3','D4','D5','D6'];
+  let s='';
+  // grid rings
+  [0.25,0.5,0.75,1].forEach(t=>{
+    let pts='';
+    for(let i=0;i<n;i++){const a=-Math.PI/2+i*2*Math.PI/n;
+      pts+=`${cx+R*t*Math.cos(a)},${cy+R*t*Math.sin(a)} `;}
+    s+=`<polygon points="${pts}" fill="none" stroke="#1f2937" stroke-width="1"/>`;
+  });
+  // axes + labels
+  for(let i=0;i<n;i++){const a=-Math.PI/2+i*2*Math.PI/n;
+    s+=`<line x1="${cx}" y1="${cy}" x2="${cx+R*Math.cos(a)}" y2="${cy+R*Math.sin(a)}" stroke="#1f2937"/>`;
+    s+=`<text x="${cx+(R+14)*Math.cos(a)}" y="${cy+(R+14)*Math.sin(a)}" fill="#8b97a8"
+        font-size="11" text-anchor="middle" dominant-baseline="middle">${labels[i]}</text>`;}
+  // data polygon
+  let pts='';
+  for(let i=0;i<n;i++){const a=-Math.PI/2+i*2*Math.PI/n;const t=clamp(D[i]/DIM_MAX[i]);
+    pts+=`${cx+R*t*Math.cos(a)},${cy+R*t*Math.sin(a)} `;}
+  s+=`<polygon points="${pts}" fill="rgba(56,189,248,.2)" stroke="#38bdf8" stroke-width="2"/>`;
+  for(let i=0;i<n;i++){const a=-Math.PI/2+i*2*Math.PI/n;const t=clamp(D[i]/DIM_MAX[i]);
+    s+=`<circle cx="${cx+R*t*Math.cos(a)}" cy="${cy+R*t*Math.sin(a)}" r="3" fill="#38bdf8"/>`;}
+  svg.innerHTML=s;
+}
+
+// ---------- TOOLBAR ACTIONS ----------
+function loadSample(){d={...SAMPLE};buildAll();}
+function randomize(){
+  DIMS.flatMap(x=>x.fields).forEach(f=>{
+    if(f.t==='r'){d[f.k]=Math.round(Math.random()*100)/100;}
+    else{const base=SAMPLE[f.k];d[f.k]=Math.max(f.min||0,Math.round(base*(0.4+Math.random()*1.4)));}
+  });
+  GATES.forEach(g=>d[g.k]=Math.random()>0.12?1:0);
+  buildAll();
+}
+function copySummary(){
+  const r=compute();
+  const txt=`PROJECT SCORE: ${fmt(r.score)} (${document.getElementById('scoreLabel').textContent})
+D1 Scope ${fmt(r.D[0])} | D2 Commercial ${fmt(r.D[1])} | D3 Delivery ${fmt(r.D[2])}
+D4 Risk ${fmt(r.D[3])} | D5 Client ${fmt(r.D[4])} | D6 Strategic ${fmt(r.D[5])}
+Bonuses: rev ${fmt(r.b.rev)}, ltv ${fmt(r.b.ltv)}, strat ${fmt(r.b.strat)} | Gate G=${r.G}`;
+  navigator.clipboard.writeText(txt).then(()=>alert('Summary copied to clipboard.'));
+}
+function exportScenario(){
+  const blob=new Blob([JSON.stringify(d,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='project-scenario.json';a.click();
+}
+function importScenario(e){
+  const file=e.target.files[0];if(!file)return;
+  const fr=new FileReader();
+  fr.onload=()=>{try{d={...SAMPLE,...JSON.parse(fr.result)};buildAll();}catch{alert('Invalid scenario file.')}};
+  fr.readAsText(file);
+}
+
+function buildAll(){buildGates();buildDims();render();}
+buildAll();
+</script>
+</body>
+</html>
