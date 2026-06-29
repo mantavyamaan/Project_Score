@@ -1,6 +1,6 @@
 # Project Scoring Model
 
-You can access my models at:
+You can access my models here:
 
 [Project Score Model](https://mantavyamaan.github.io/Project_Score/project-score-console.html)
 
