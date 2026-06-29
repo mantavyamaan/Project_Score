@@ -4,7 +4,7 @@ You can access my models at:
 
 [Project Score Model](https://mantavyamaan.github.io/Project_Score/project-score-console.html)
 
-[Simplified Project Score Model(https://mantavyamaan.github.io/Project_Score/simplified-project-score-console.html)
+[Simplified Project Score Model](https://mantavyamaan.github.io/Project_Score/simplified-project-score-console.html)
 
 
 ## Overview
